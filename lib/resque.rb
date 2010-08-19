@@ -29,40 +29,49 @@ module Resque
     when String
       host, port = server.split(':')
       @con = Mongo::Connection.new(host, port)
-      @db = @con.db('monque')
+    when Mongo::Connection
+      @con = server
+    end
+  end
+
+  def mongo_database=(database_name)
+    @database_name = database_name
+  end
+
+  def ensure_database
+    unless @db
+      self.mongo = 'localhost:27017' unless @con
+      @db = @con.db(@database_name || 'monque')
+    end
+    unless @mongo
       @mongo = @db.collection('monque')
       @workers = @db.collection('workers')
       @failures = @db.collection('failures')
       @stats = @db.collection('stats')
-
+      
       add_indexes
     end
   end
 
-
   # Returns the current Redis connection. If none has been created, will
   # create a new one.
   def mongo
-    return @mongo if @mongo
-    self.mongo = 'localhost:27017'
-    self.mongo
+    ensure_database
+    @mongo
   end
 
   def mongo_workers
-    return @workers if @workers
-    self.mongo = 'localhost:27017'
+    ensure_database
     @workers
   end
 
   def mongo_failures
-    return @failures if @failures
-    self.mongo = 'localhost:27017'
+    ensure_database
     @failures
   end
 
   def mongo_stats
-    return @stats if @stats
-    self.mongo = 'localhost:27017'
+    ensure_database
     @stats
   end
   
